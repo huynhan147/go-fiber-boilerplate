@@ -1,0 +1,15 @@
+# Binary
+bin/
+*.exe
+
+# Env
+.env
+
+# Logs
+storage/logs/*.log
+storage/logs/*.gz
+
+# IDE
+.idea/
+.vscode/
+*.swp

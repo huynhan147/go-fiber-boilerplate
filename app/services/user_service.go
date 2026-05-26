@@ -5,8 +5,10 @@ import (
 	"errors"
 	"fmt"
 	"myapp/app/repositories"
+	"myapp/jobs"
 	"myapp/models"
 	"myapp/pkg/cache"
+	"myapp/pkg/queue"
 	"time"
 
 	"golang.org/x/crypto/bcrypt"
@@ -25,10 +27,11 @@ type UserService interface {
 type userService struct {
 	repo  repositories.UserRepository
 	cache *cache.Cache
+	queue *queue.Client
 }
 
-func NewUserService(repo repositories.UserRepository, cache *cache.Cache) UserService {
-	return &userService{repo: repo, cache: cache}
+func NewUserService(repo repositories.UserRepository, cache *cache.Cache, queue *queue.Client) UserService {
+	return &userService{repo: repo, cache: cache, queue: queue}
 }
 
 func (s *userService) GetAll(page, limit int) ([]models.User, int64, error) {
@@ -77,6 +80,17 @@ func (s *userService) Create(name, email, password string) (*models.User, error)
 	if err := s.repo.Create(user); err != nil {
 		return nil, err
 	}
+
+	// Enqueue job gửi welcome email sau khi tạo user thành công
+	task, err := jobs.NewSendWelcomeEmailTask(jobs.SendWelcomeEmailPayload{
+		UserID: user.ID,
+		Email:  user.Email,
+		Name:   user.Name,
+	})
+	if err == nil {
+		_ = s.queue.Enqueue(task)
+	}
+
 	return user, nil
 }
 

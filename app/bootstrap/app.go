@@ -6,6 +6,7 @@ import (
 	"myapp/app/repositories"
 	"myapp/app/services"
 	"myapp/pkg/cache"
+	"myapp/pkg/queue"
 
 	"github.com/redis/go-redis/v9"
 	"github.com/spf13/viper"
@@ -20,6 +21,7 @@ func BuildContainer(
 
 	// cache
 	cacheStore := cache.New(rdb)
+	queueStore := queue.NewClient(cfg)
 
 	// repositories
 	userRepo := repositories.NewUserRepository(db)
@@ -28,6 +30,7 @@ func BuildContainer(
 	userService := services.NewUserService(
 		userRepo,
 		cacheStore,
+		queueStore,
 	)
 
 	authService := services.NewAuthService(

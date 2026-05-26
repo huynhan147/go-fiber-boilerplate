@@ -2,10 +2,10 @@ package main
 
 import (
 	"log"
-
 	"myapp/app/bootstrap"
 	"myapp/app/middleware"
 	"myapp/config"
+	"myapp/pkg/logger"
 	"myapp/routes"
 
 	"github.com/gofiber/fiber/v2"
@@ -17,6 +17,18 @@ func main() {
 
 	// Load config
 	cfg := config.Load()
+
+	// Init logger — phải gọi trước tất cả
+	logger.Init(
+		cfg.GetString("APP_ENV"),
+		cfg.GetString("LOG_DIR"),
+	)
+	defer logger.Sync()
+
+	logger.Info("Starting application",
+		logger.F("app", cfg.GetString("APP_NAME")),
+		logger.F("env", cfg.GetString("APP_ENV")),
+	)
 
 	// Init database
 	db := config.InitDB(cfg)
@@ -39,6 +51,12 @@ func main() {
 
 	// Global middleware
 	app.Use(recover.New())
+
+	app.Use(fiberlogger.New(fiberlogger.Config{
+		Format:     "${time} | ${status} | ${latency} | ${method} ${path}\n",
+		TimeFormat: "2006-01-02 15:04:05",
+		Output:     config.AccessLogWriter(cfg.GetString("LOG_DIR")),
+	}))
 
 	app.Use(fiberlogger.New(fiberlogger.Config{
 		Format: "[${time}] ${status} - ${method} ${path} (${latency})\n",
