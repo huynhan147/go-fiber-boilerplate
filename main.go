@@ -63,7 +63,7 @@ func main() {
 	}))
 
 	app.Use(middleware.CORS())
-
+	app.Use(middleware.RequestID())
 	// Register routes
 	routes.Register(app, container)
 
